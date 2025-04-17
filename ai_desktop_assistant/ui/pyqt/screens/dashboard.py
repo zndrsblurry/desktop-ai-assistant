@@ -35,6 +35,7 @@ class DashboardScreen(QWidget):
     voice_data_signal = pyqtSignal(float)
     # Signal to log user speech transcripts in the dashboard log
     voice_transcript_signal = pyqtSignal(str)
+    ai_response_signal = pyqtSignal(str)
 
     def __init__(self, container: DependencyContainer, event_bus: EventBus):
         super().__init__()
@@ -54,6 +55,8 @@ class DashboardScreen(QWidget):
         self.voice_data_signal.connect(self.on_voice_data, Qt.QueuedConnection)
         # Connect transcript signal to logging handler
         self.voice_transcript_signal.connect(self.on_voice_transcript, Qt.QueuedConnection)
+        # Connect AI response signal to logging handler
+        self.ai_response_signal.connect(self.on_ai_response, Qt.QueuedConnection)
 
         # Subscribe to voice events for visual feedback via signal emitters
         from ai_desktop_assistant.core.events import EventType
@@ -62,6 +65,8 @@ class DashboardScreen(QWidget):
         self.event_bus.subscribe(EventType.VOICE_DATA, self._emit_voice_data)
         # Subscribe to transcript events to log user speech
         self.event_bus.subscribe(EventType.VOICE_TRANSCRIPT, self._emit_voice_transcript)
+        # Subscribe to AI response events to log AI speech
+        self.event_bus.subscribe(EventType.AI_RESPONSE, self._emit_ai_response)
 
     def setup_ui(self):
         """Set up the dashboard UI components."""
@@ -424,6 +429,14 @@ class DashboardScreen(QWidget):
         """Emit user transcript to be logged in main thread."""
         self.voice_transcript_signal.emit(transcript)
     
+    def _emit_ai_response(self, response: str):
+        """Emit AI response transcript to be logged in main thread."""
+        self.ai_response_signal.emit(response)
+    
     def on_voice_transcript(self, transcript: str):
         """Handle user speech transcript by logging it."""
         self.add_log(f"User: {transcript}")
+    
+    def on_ai_response(self, response: str):
+        """Handle AI response transcript by logging it."""
+        self.add_log(f"AI: {response}")

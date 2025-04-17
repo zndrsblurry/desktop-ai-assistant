@@ -152,19 +152,13 @@ class ApplicationController(QObject):
         Ensure a live audio session is active and send the greeting.
         """
         try:
-            # Start the live audio session
-            await self._ai_service.start_live_session_audio()
-            self.logger.info("Live audio session started successfully")
-            
-            # Send the greeting prompt as AI text
+            # Send the greeting prompt as AI text and handle the response
             response = await self._ai_service.process_text(greeting)
             self.logger.info(f"AI greeting response: {response}")
-            
-            # Explicitly trigger the AI response event to ensure it's processed
-            # This is redundant since process_text already does this, but we do it just in case
+            # Trigger the AI response event to ensure it's processed
             self._event_bus.publish(EventType.AI_RESPONSE, response)
         except Exception as e:
-            self.logger.error(f"Error initializing live session or sending greeting: {e}")
+            self.logger.error(f"Error sending greeting: {e}")
 
     def start_assistant(self):
         """Start the assistant."""
@@ -179,9 +173,10 @@ class ApplicationController(QObject):
         self._event_bus.publish(EventType.STATE_CHANGED, "assistant_state", "starting")
         self.logger.info("Starting assistant")
 
-        # Activate voice recognition: schedule listening on the background asyncio loop
+        # Start live audio conversation: stream mic directly to AI and play responses
         asyncio.run_coroutine_threadsafe(
-            self._mic_input.start_listening(), self._loop
+            self._ai_service.live_audio_conversation(self._mic_input, self._speaker_output),
+            self._loop
         )
 
         # Transition to listening state
@@ -191,7 +186,7 @@ class ApplicationController(QObject):
         # Prompt the AI to greet the user via the live session (ensure session initialized)
         greeting_prompt = "Hi boss, how can I help you today?"
         try:
-            # Make this synchronous to ensure it completes before continuing
+            # Synchronously send greeting before proceeding
             future = asyncio.run_coroutine_threadsafe(
                 self._init_session_and_greet(greeting_prompt), self._loop
             )
@@ -199,7 +194,7 @@ class ApplicationController(QObject):
             future.result(timeout=5)
             self.logger.info(f"Greeting sent: {greeting_prompt}")
         except Exception as e:
-            self.logger.error(f"Error initializing live session and greeting: {e}")
+            self.logger.error(f"Error sending greeting: {e}")
 
     def stop_assistant(self):
         """Stop the assistant."""

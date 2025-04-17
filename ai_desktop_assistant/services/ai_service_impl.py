@@ -209,3 +209,61 @@ class AIServiceImpl(AIService):
         except Exception as e:
             self.logger.error(f"Error converting text to speech: {e}")
             raise APIError(f"Failed to convert text to speech: {e}")
+    
+    async def live_audio_conversation(self, mic_input, speaker_output) -> None:
+        """
+        Stream live bidirectional audio with the AI: capture mic, send to live session,
+        and play back AI audio responses, publishing text when available.
+        """
+        try:
+            # Ensure live audio session is started
+            await self.start_live_session_audio()
+            # Prepare microphone stream
+            if not getattr(mic_input, 'pyaudio', None):
+                raise APIError("PyAudio not initialized for live streaming")
+            pya = mic_input.pyaudio
+            mic_info = pya.get_default_input_device_info()
+            stream = await asyncio.to_thread(
+                pya.open,
+                format=mic_input.FORMAT,
+                channels=mic_input.CHANNELS,
+                rate=mic_input.RATE,
+                input=True,
+                input_device_index=mic_info['index'],
+                frames_per_buffer=mic_input.CHUNK,
+            )
+            # Use overflow handling in debug mode
+            if __debug__:
+                kwargs = {'exception_on_overflow': False}
+            else:
+                kwargs = {}
+
+            async def _send_audio():
+                while True:
+                    data = await asyncio.to_thread(stream.read, mic_input.CHUNK, **kwargs)
+                    # Send raw audio PCM to live session
+                    await self.gemini_client.live_session.send(
+                        input={'data': data, 'mime_type': 'audio/pcm'}
+                    )
+
+            async def _receive_audio():
+                # Receive responses continuously
+                while True:
+                    turn = self.gemini_client.live_session.receive()
+                    async for response in turn:
+                        # Play audio data if present
+                        if getattr(response, 'data', None):
+                            try:
+                                await speaker_output.play_audio(response.data)
+                            except Exception as exc:
+                                self.logger.error(f"Error playing live AI audio: {exc}")
+                        # Publish any text transcripts from AI
+                        if getattr(response, 'text', None):
+                            self.event_bus.publish(EventType.AI_RESPONSE, response.text)
+
+            # Run send and receive concurrently
+            await asyncio.gather(_send_audio(), _receive_audio())
+        except Exception as e:
+            self.logger.error(f"Error in live audio conversation: {e}")
+            self.event_bus.publish(EventType.AI_ERROR, str(e))
+            raise
