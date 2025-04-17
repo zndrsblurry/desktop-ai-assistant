@@ -23,7 +23,7 @@ class AppConfig:
     app_version: str = "0.1.0"
 
     # API keys and authentication
-    api_key: str = "AIzaSyDKtA9ODOo6rpfTJqQBonxurEvIxbzbZc0"
+    api_key: str = ""
 
     # AI model settings
     default_model: str = "gemini-2.0-flash-live-preview-04-09"
