@@ -35,6 +35,8 @@ class GeminiClient:
         self.api_key = config.api_key
         self.client = None
         self.live_session = None
+        # Context manager for live session (for cleanup)
+        self.live_session_cm = None
 
     async def initialize(self) -> None:
         """
@@ -153,10 +155,12 @@ class GeminiClient:
                         )
                     )
                 )
-            # Create the session
-            self.live_session = await self.client.aio.live.connect(
-                model=model_name, config=config
-            )
+            # Create the live session context manager
+            cm = self.client.aio.live.connect(model=model_name, config=config)
+            # Enter context to establish the session
+            self.live_session = await cm.__aenter__()
+            # Store context manager for potential cleanup
+            self.live_session_cm = cm
             self.logger.info(f"Started live session with model {model_name}")
 
         except Exception as e:

@@ -15,6 +15,12 @@ logger = logging.getLogger(__name__)
 def run_pyqt_ui(container: DependencyContainer, event_bus: EventBus):
     """Run the PyQt5-based UI for the assistant."""
     logger.info("Initializing PyQt5 UI")
+    # Register QTextCursor as a meta type for queued signal connections
+    try:
+        from PyQt5.QtCore import qRegisterMetaType
+        qRegisterMetaType("QTextCursor")
+    except Exception:
+        logger.warning("Could not register QTextCursor meta type")
     app = QApplication(sys.argv)
 
     # Set application metadata for QSettings
