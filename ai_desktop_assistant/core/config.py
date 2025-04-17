@@ -9,7 +9,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 from dotenv import load_dotenv
 
 
@@ -23,10 +23,12 @@ class AppConfig:
     app_version: str = "0.1.0"
 
     # API keys and authentication
-    api_key: str = ""
+    api_key: Optional[str] = None
 
     # AI model settings
     default_model: str = "gemini-2.0-flash-live-preview-04-09"
+    # List of available AI models for selection in the UI
+    available_models: List[str] = field(default_factory=list)
     system_prompt: str = (
         "You are a helpful AI desktop assistant that can help the user with various tasks on their computer."
     )
@@ -86,6 +88,15 @@ def load_config() -> AppConfig:
     # AI model name from environment (supports AI_MODEL_NAME or legacy AI_ASSISTANT_MODEL)
     if model := os.environ.get("AI_MODEL_NAME") or os.environ.get("AI_ASSISTANT_MODEL"):
         config.default_model = model
+    # Available AI models list (comma-separated)
+    if models_env := os.environ.get("AI_MODELS"):
+        models_list = [m.strip() for m in models_env.split(",") if m.strip()]
+        # Ensure default_model is included
+        if config.default_model not in models_list:
+            models_list.insert(0, config.default_model)
+        config.available_models = models_list
+    else:
+        config.available_models = [config.default_model]
 
     # UI theme and accent color
     if theme := os.environ.get("UI_THEME"):

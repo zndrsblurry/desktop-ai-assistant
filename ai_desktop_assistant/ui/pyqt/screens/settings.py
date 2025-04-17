@@ -22,6 +22,7 @@ from PyQt5.QtCore import Qt
 
 from ai_desktop_assistant.core.di import DependencyContainer
 from ai_desktop_assistant.core.events import EventBus
+from ai_desktop_assistant.core.config import AppConfig
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +55,13 @@ class SettingsScreen(QWidget):
 
         # Model selection
         self.model_selection = QComboBox()
-        self.model_selection.addItems(
-            ["gemini-pro", "gemini-1.5-pro", "gemini-1.5-flash"]
-        )
+        # Populate models from configuration
+        try:
+            config = self.container.resolve(AppConfig)
+            self.model_selection.addItems(config.available_models)
+        except Exception:
+            # Fallback to default hardcoded models if config not available
+            self.model_selection.addItems(["gemini-pro", "gemini-1.5-pro", "gemini-1.5-flash"])
         api_form_layout.addRow("Model:", self.model_selection)
 
         main_layout.addWidget(api_group)
