@@ -67,10 +67,14 @@ class MainWindow(QMainWindow):
 
         # Create and add tab screens
         self.dashboard = DashboardScreen(self.container, self.event_bus)
+        # Conversation tab for chat interaction
+        from ai_desktop_assistant.ui.pyqt.screens.conversation import ConversationScreen
+        self.conversation = ConversationScreen(self.container, self.event_bus)
         self.settings = SettingsScreen(self.container, self.event_bus)
         self.help = HelpScreen()
 
         self.tabs.addTab(self.dashboard, "Dashboard")
+        self.tabs.addTab(self.conversation, "Conversation")
         self.tabs.addTab(self.settings, "Settings")
         self.tabs.addTab(self.help, "Help")
 

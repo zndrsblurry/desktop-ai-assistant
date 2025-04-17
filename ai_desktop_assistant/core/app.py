@@ -98,6 +98,9 @@ class ApplicationController(QObject):
         # Initialize all components that need async initialization
         await self._mic_input.initialize()
         await self._ai_service.initialize()
+        # Wire text input events to AI service processing
+        from ai_desktop_assistant.core.events import EventType
+        self._event_bus.subscribe(EventType.TEXT_INPUT, self._ai_service.process_text)
 
         # Mark as initialized
         self._is_initialized = True
