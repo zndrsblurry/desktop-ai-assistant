@@ -257,9 +257,7 @@ class AIServiceImpl(AIService):
                                 await speaker_output.play_audio(response.data)
                             except Exception as exc:
                                 self.logger.error(f"Error playing live AI audio: {exc}")
-                        # Publish any text transcripts from AI
-                        if getattr(response, 'text', None):
-                            self.event_bus.publish(EventType.AI_RESPONSE, response.text)
+                        # (no TTS-retrigger here — we already played the model’s audio)
 
             # Run send and receive concurrently
             await asyncio.gather(_send_audio(), _receive_audio())

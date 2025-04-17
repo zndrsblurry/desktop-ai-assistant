@@ -182,6 +182,8 @@ class ApplicationController(QObject):
             self._ai_service.live_audio_conversation(self._mic_input, self._speaker_output),
             self._loop
         )
+        # Turn off the local-transcribe→text→AI path while in LiveAudio mode
+        self._event_bus.unsubscribe(EventType.TEXT_INPUT, self._ai_service.process_text)
 
         # Transition to listening state
         self._state.assistant_state = "listening"
