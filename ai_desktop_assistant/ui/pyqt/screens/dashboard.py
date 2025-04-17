@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import (
     QButtonGroup,
     QProgressBar,
 )
-from PyQt5.QtCore import Qt, QTimer, pyqtSlot
+from PyQt5.QtCore import Qt, QTimer, pyqtSlot, pyqtSignal
 from PyQt5.QtGui import QPixmap, QImage
 
 from ai_desktop_assistant.core.di import DependencyContainer
@@ -29,6 +29,10 @@ logger = logging.getLogger(__name__)
 
 class DashboardScreen(QWidget):
     """Dashboard screen with monitor selection, preview, and controls."""
+    # Signals for thread-safe UI updates
+    voice_input_start_signal = pyqtSignal()
+    voice_input_stop_signal = pyqtSignal()
+    voice_data_signal = pyqtSignal(float)
 
     def __init__(self, container: DependencyContainer, event_bus: EventBus):
         super().__init__()
@@ -41,11 +45,17 @@ class DashboardScreen(QWidget):
         # Initialize screen capture thread
         self.screen_capture_thread = None
         QTimer.singleShot(200, self.setup_screen_capture)
-        # Subscribe to voice events for visual feedback
+
+        # Connect voice signals for thread-safe UI updates
+        self.voice_input_start_signal.connect(self.on_voice_input_start, Qt.QueuedConnection)
+        self.voice_input_stop_signal.connect(self.on_voice_input_stop, Qt.QueuedConnection)
+        self.voice_data_signal.connect(self.on_voice_data, Qt.QueuedConnection)
+
+        # Subscribe to voice events for visual feedback via signal emitters
         from ai_desktop_assistant.core.events import EventType
-        self.event_bus.subscribe(EventType.VOICE_INPUT_START, self.on_voice_input_start)
-        self.event_bus.subscribe(EventType.VOICE_INPUT_STOP, self.on_voice_input_stop)
-        self.event_bus.subscribe(EventType.VOICE_DATA, self.on_voice_data)
+        self.event_bus.subscribe(EventType.VOICE_INPUT_START, self._emit_voice_input_start)
+        self.event_bus.subscribe(EventType.VOICE_INPUT_STOP, self._emit_voice_input_stop)
+        self.event_bus.subscribe(EventType.VOICE_DATA, self._emit_voice_data)
 
     def setup_ui(self):
         """Set up the dashboard UI components."""
@@ -390,3 +400,16 @@ class DashboardScreen(QWidget):
                 self.volume_bar.setValue(level)
             except Exception:
                 pass
+    
+    # Internal emitters for voice events from other threads
+    def _emit_voice_input_start(self):
+        """Emit signal for voice input start in main thread."""
+        self.voice_input_start_signal.emit()
+
+    def _emit_voice_input_stop(self):
+        """Emit signal for voice input stop in main thread."""
+        self.voice_input_stop_signal.emit()
+
+    def _emit_voice_data(self, volume):
+        """Emit signal for voice data update in main thread."""
+        self.voice_data_signal.emit(volume)

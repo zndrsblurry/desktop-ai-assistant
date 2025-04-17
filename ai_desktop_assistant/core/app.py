@@ -100,11 +100,16 @@ class ApplicationController(QObject):
         self._container.register_instance(action_factory)
 
         # Initialize all components that need async initialization
+        # Initialize microphone and AI service
         await self._mic_input.initialize()
         await self._ai_service.initialize()
+        # Initialize speaker output provider for TTS feedback
+        await self._speaker_output.initialize()
         # Wire text input events to AI service processing
         from ai_desktop_assistant.core.events import EventType
         self._event_bus.subscribe(EventType.TEXT_INPUT, self._ai_service.process_text)
+        # Subscribe to AI responses to speak them via speaker output
+        self._event_bus.subscribe(EventType.AI_RESPONSE, self._on_ai_response)
 
         # Mark as initialized
         self._is_initialized = True
@@ -163,6 +168,16 @@ class ApplicationController(QObject):
         # Transition to listening state
         self._state.assistant_state = "listening"
         self._event_bus.publish(EventType.STATE_CHANGED, "assistant_state", "listening")
+
+        # Prompt the AI to greet the user via the live session
+        try:
+            greeting_prompt = "Hi boss, how can I help you today?"
+            # This will send the prompt to the AI, triggering an AI_RESPONSE and playback
+            asyncio.run_coroutine_threadsafe(
+                self._ai_service.process_text(greeting_prompt), self._loop
+            )
+        except Exception as e:
+            self.logger.error(f"Error prompting AI to greet: {e}")
 
     def stop_assistant(self):
         """Stop the assistant."""
@@ -228,6 +243,23 @@ class ApplicationController(QObject):
         # Forward errors to main window if using PyQt5
         if self._main_window and hasattr(self._main_window, "on_error"):
             self._main_window.on_error(error_type, error_message)
+        
+    def _on_ai_response(self, response: str) -> None:
+        """Handle AI_RESPONSE events by speaking the response via speaker output."""
+        # Speak AI response via TTS and audio playback on the asyncio loop
+        try:
+            async def _speak():
+                try:
+                    # Convert text to speech (get raw audio bytes)
+                    audio_bytes = await self._ai_service.get_speech(response)
+                    # Play the audio data
+                    await self._speaker_output.play_audio(audio_bytes)
+                except Exception as exc:
+                    self.logger.error(f"Error playing AI response: {exc}")
+            # Schedule coroutine on background event loop
+            asyncio.run_coroutine_threadsafe(_speak(), self._loop)
+        except Exception as e:
+            self.logger.error(f"Failed to schedule AI response speaking: {e}")
 
     # QML exposed methods
     @Slot(str)
