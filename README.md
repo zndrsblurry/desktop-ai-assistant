@@ -52,7 +52,7 @@ The application follows a modern, modular design:
 1.  **Clone the Repository:**
 
     ```bash
-    git clone https://github.com/yourusername/ai-desktop-assistant.git # Replace with your repo URL
+    git clone https://github.com/zndrsblurry/desktop-ai-assistant.git
     cd ai-desktop-assistant
     ```
 
