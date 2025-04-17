@@ -6,6 +6,7 @@ This module provides a client for interacting with Google's Gemini model API.
 """
 
 import logging
+import asyncio
 from typing import Any, Dict, List, Optional
 
 from google import genai
@@ -37,6 +38,8 @@ class GeminiClient:
         self.live_session = None
         # Context manager for live session (for cleanup)
         self.live_session_cm = None
+        # Lock to prevent concurrent send/receive on the live session
+        self._send_lock = asyncio.Lock()
 
     async def initialize(self) -> None:
         """
@@ -183,29 +186,31 @@ class GeminiClient:
         Raises:
             APIError: If sending the message fails
         """
-        if not self.live_session:
-            await self.start_live_session()
+        # Prevent concurrent sends/receives on the same live session
+        async with self._send_lock:
+            if not self.live_session:
+                await self.start_live_session()
 
-        try:
-            # Send the message
-            await self.live_session.send(input=message, end_of_turn=end_of_turn)
+            try:
+                # Send the message
+                await self.live_session.send(input=message, end_of_turn=end_of_turn)
 
-            # Collect the response
-            response_text = ""
-            async for response in self.live_session.receive():
-                if text := response.text:
-                    response_text += text
+                # Collect the response
+                response_text = ""
+                async for response in self.live_session.receive():
+                    if text := response.text:
+                        response_text += text
 
-                # Check for tool calls (for future feature)
-                if tool_call := response.tool_call:
-                    self.logger.debug(f"Tool call received: {tool_call}")
-                    # TODO: Handle tool calls when implementing actions
+                    # Check for tool calls (for future feature)
+                    if tool_call := response.tool_call:
+                        self.logger.debug(f"Tool call received: {tool_call}")
+                        # TODO: Handle tool calls when implementing actions
 
-            return response_text
+                return response_text
 
-        except Exception as e:
-            self.logger.error(f"Error sending message to live session: {e}")
-            raise APIError(f"Failed to send message to live session: {e}")
+            except Exception as e:
+                self.logger.error(f"Error sending message to live session: {e}")
+                raise APIError(f"Failed to send message to live session: {e}")
 
     async def close_live_session(self) -> None:
         """
