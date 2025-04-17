@@ -31,8 +31,10 @@ class ConversationScreen(QWidget):
         # Set up UI components
         self.setup_ui()
         # Subscribe to input and AI response events
+        # Use TEXT_INPUT for user messages (includes voice transcripts)
         self.event_bus.subscribe(EventType.TEXT_INPUT, self.on_user_message)
-        self.event_bus.subscribe(EventType.VOICE_TRANSCRIPT, self.on_user_message)
+        # Remove duplicate VOICE_TRANSCRIPT subscription to avoid processing messages twice
+        # self.event_bus.subscribe(EventType.VOICE_TRANSCRIPT, self.on_user_message)
         self.event_bus.subscribe(EventType.AI_RESPONSE, self.on_ai_response)
 
     def setup_ui(self):

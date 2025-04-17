@@ -208,8 +208,8 @@ class MainWindow(QMainWindow):
         # Connect app controller signals
         self.event_bus.subscribe(EventType.STATE_CHANGED, self.on_state_changed)
         self.event_bus.subscribe(EventType.ERROR, self.on_error)
-        # Log voice transcripts and AI responses
-        self.event_bus.subscribe(EventType.VOICE_TRANSCRIPT, self.on_voice_transcript)
+        # Log AI responses only; raw voice transcripts are not logged or captioned
+        # self.event_bus.subscribe(EventType.VOICE_TRANSCRIPT, self.on_voice_transcript)
         self.event_bus.subscribe(EventType.AI_RESPONSE, self.on_ai_response)
 
     def load_settings(self):

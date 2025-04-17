@@ -46,6 +46,9 @@ def setup_logging(log_level: str = None, log_file: str = None) -> None:
     # Set specific logger levels
     logging.getLogger("asyncio").setLevel(logging.WARNING)
     logging.getLogger("aiohttp").setLevel(logging.WARNING)
+    # Suppress verbose raw streaming logs from the Google GenAI live client
+    logging.getLogger("google_genai.live").setLevel(logging.WARNING)
+    logging.getLogger("google.genai.live").setLevel(logging.WARNING)
 
     # Log initial setup
     logger = logging.getLogger(__name__)

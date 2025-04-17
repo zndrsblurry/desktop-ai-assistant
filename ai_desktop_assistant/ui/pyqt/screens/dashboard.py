@@ -33,6 +33,8 @@ class DashboardScreen(QWidget):
     voice_input_start_signal = pyqtSignal()
     voice_input_stop_signal = pyqtSignal()
     voice_data_signal = pyqtSignal(float)
+    # Signal to log user speech transcripts in the dashboard log
+    voice_transcript_signal = pyqtSignal(str)
 
     def __init__(self, container: DependencyContainer, event_bus: EventBus):
         super().__init__()
@@ -50,12 +52,16 @@ class DashboardScreen(QWidget):
         self.voice_input_start_signal.connect(self.on_voice_input_start, Qt.QueuedConnection)
         self.voice_input_stop_signal.connect(self.on_voice_input_stop, Qt.QueuedConnection)
         self.voice_data_signal.connect(self.on_voice_data, Qt.QueuedConnection)
+        # Connect transcript signal to logging handler
+        self.voice_transcript_signal.connect(self.on_voice_transcript, Qt.QueuedConnection)
 
         # Subscribe to voice events for visual feedback via signal emitters
         from ai_desktop_assistant.core.events import EventType
         self.event_bus.subscribe(EventType.VOICE_INPUT_START, self._emit_voice_input_start)
         self.event_bus.subscribe(EventType.VOICE_INPUT_STOP, self._emit_voice_input_stop)
         self.event_bus.subscribe(EventType.VOICE_DATA, self._emit_voice_data)
+        # Subscribe to transcript events to log user speech
+        self.event_bus.subscribe(EventType.VOICE_TRANSCRIPT, self._emit_voice_transcript)
 
     def setup_ui(self):
         """Set up the dashboard UI components."""
@@ -413,3 +419,11 @@ class DashboardScreen(QWidget):
     def _emit_voice_data(self, volume):
         """Emit signal for voice data update in main thread."""
         self.voice_data_signal.emit(volume)
+    
+    def _emit_voice_transcript(self, transcript: str):
+        """Emit user transcript to be logged in main thread."""
+        self.voice_transcript_signal.emit(transcript)
+    
+    def on_voice_transcript(self, transcript: str):
+        """Handle user speech transcript by logging it."""
+        self.add_log(f"User: {transcript}")
