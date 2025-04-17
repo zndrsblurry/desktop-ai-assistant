@@ -1,0 +1,42 @@
+{
+  "python.linting.enabled": true,
+  "python.linting.flake8Enabled": true,
+  "python.linting.pylintEnabled": false,
+  "python.formatting.provider": "black",
+  "python.formatting.blackArgs": ["--line-length", "100"],
+  "editor.formatOnSave": true,
+  "editor.rulers": [100],
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+  "python.linting.flake8Args": [
+    "--max-line-length=100",
+    "--ignore=E203,E231,E501,W503,E226",
+    "--ignore-whitespace-before-colon"
+  ],
+  "python.sortImports.args": ["--profile", "black"],
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/*.egg-info": true,
+    ".coverage": true,
+    "htmlcov": true
+  },
+  "python.testing.pytestEnabled": true,
+  "qml.filePattern": "**/*.qml",
+  "qml.trace.server": "messages",
+  "qml.validation.enabled": true,
+  "qml.validation.onSave": true,
+  "qml.validation.onType": true,
+  "files.associations": {
+    "*.qml": "qml",
+    "qmldir": "qml"
+  }
+}

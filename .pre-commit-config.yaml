@@ -1,0 +1,85 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0 # Update to a recent version
+    hooks:
+      - id: check-added-large-files # Prevent committing large binaries
+        args: ["--maxkb=1024"] # Limit to 1MB
+      - id: check-ast # Check python syntax validity
+      - id: check-builtin-literals
+      - id: check-case-conflict # Check for case-conflicting filenames
+      - id: check-docstring-first
+      - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-merge-conflict # Prevent committing merge conflict markers
+      - id: check-shebang-scripts-are-executable
+      - id: check-toml
+      - id: check-yaml
+      - id: debug-statements # Prevent committing `pdb`, `breakpoint()` etc.
+      - id: destroyed-symlinks
+      - id: detect-private-key # Prevent committing private keys
+      - id: end-of-file-fixer # Ensure files end with a newline
+      - id: fix-byte-order-marker
+      - id: mixed-line-ending # Standardize line endings
+      - id: requirements-txt-fixer # Sort requirements files
+      - id: trailing-whitespace # Remove trailing whitespace
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Update rev to the latest stable release or a specific desired version
+    rev: v0.4.4 # Example: Check https://github.com/astral-sh/ruff-pre-commit/releases
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix] # Apply fixes automatically
+        types_or: [python, pyi, jupyter] # Apply to notebooks too
+      - id: ruff-format # Use ruff's formatter (alternative to black)
+        types_or: [python, pyi, jupyter]
+
+  # Uncomment if you prefer Black over ruff format
+  # -   repo: https://github.com/psf/black
+  #     rev: 24.4.2 # Update to a recent stable version
+  #     hooks:
+  #     -   id: black
+  #         args: [--line-length=88]
+  #         language_version: python3.10 # Specify target version
+
+  # Uncomment if you prefer isort over ruff I001 rule
+  # -   repo: https://github.com/pycqa/isort
+  #     rev: 5.13.2 # Update to a recent stable version
+  #     hooks:
+  #     -   id: isort
+  #         args: ["--profile", "black", "--filter-files"]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0 # Update to a recent stable version
+    hooks:
+      - id: mypy
+        # Pass configuration via pyproject.toml [tool.mypy] section
+        # additional_dependencies: [...] # Add types-* packages needed
+        # Example: ['types-requests', 'types-PyYAML', 'types-psutil']
+        # Exclude files/folders if necessary
+        exclude: ^(docs/|tests/fixtures/) # Exclude docs and test fixtures
+        verbose: true # Show more output on mypy failures
+
+# Optional: Check for secrets / credentials
+# -   repo: https://github.com/detect-secrets/detect-secrets
+#     rev: v1.5.0
+#     hooks:
+#     -   id: detect-secrets
+#         args: ['--baseline', '.secrets.baseline'] # Create baseline for known false positives
+#         exclude: (poetry\.lock|fixtures\/|test_.*\.py) # Exclude lock file and tests
+
+# Optional: Check docstrings format (e.g., using pydocstyle)
+# -   repo: https://github.com/pycqa/pydocstyle
+#     rev: 6.3.0
+#     hooks:
+#     -   id: pydocstyle
+#         args: ['--convention=google'] # or numpy, pep257
+#         exclude: ^(tests/|setup\.py|docs/conf\.py)
+
+# Optional: Upgrade syntax for newer python versions
+# -   repo: https://github.com/asottile/pyupgrade
+#     rev: v3.15.2
+#     hooks:
+#     -   id: pyupgrade
+#         args: [--py310-plus] # Target Python 3.10+ features

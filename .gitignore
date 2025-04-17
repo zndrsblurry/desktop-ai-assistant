@@ -1,0 +1,181 @@
+# Environment variables - contains API keys and sensitive info
+.env
+*.env.local
+*.env.*.local
+
+# Python cache files and artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+*.egg
+MANIFEST
+*.manifest
+*.spec
+pip-wheel-metadata/
+.installed.cfg
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.dist-info/
+
+# Poetry / Pip cache
+.poetry/
+poetry.lock
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Mypy cache
+.mypy_cache/
+
+# Ruff cache
+.ruff_cache/
+
+# pytest cache
+.pytest_cache/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+pytest-report.html
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environments
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.conda/
+
+# IDE project files
+.idea/
+.project
+.classpath
+*.launch
+.settings/
+
+# VS Code (Allow shared config but ignore user specific settings)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+
+# PyCharm (ignore user specific unless shared)
+*.iml
+*.iws
+*.ipr
+*.iws
+shelf/
+workspace.xml
+# Add other PyCharm files if needed
+
+# Generated UI files
+*.qmlc
+*.jsc
+ui_*.py
+
+# macOS specific files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+*.swp
+*.swo
+*~
+
+# Windows specific files
+Thumbs.db
+ehthumbs_*.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux specific files
+*~
+.directory
+.Trash-*
+.nfs*
+
+# Application specific
+logs/
+*.log
+*.log.*
+temp/
+.temp/
+session_data/
+*.sqlite
+*.db
+
+# User configuration (ignore specific user files if any)
+# config/user_*.yaml
+# config/user_*.json
+
+# Temporary audio/image files (if saved locally)
+*.wav
+*.mp3
+*.ogg
+*.raw
+*.jpg
+*.jpeg
+*.png
+*.bmp
+
+# Generated documentation output
+docs/_build/
+site/
+# Add other doc build outputs
+
+# Local development files
+*.local
+.dev/
+
+# Build System specific (if using others)
+.pybuilder/
+target/
+.gradle/
+# Add others as needed
+
+# Secrets Management (if using tools like Vault, Doppler)
+# .envrc
+# .env.vault
+# Add specific files from secrets tools
+
+# OS generated files
+.Spotlight-V100/
+.Trashes/
+ehthumbs.db/
+
+# PyInstaller build files
+build/
+dist/
+*.spec
