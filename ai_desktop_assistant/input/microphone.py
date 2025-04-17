@@ -191,16 +191,29 @@ class MicrophoneInputProvider(VoiceInputProvider):
         Raises:
             InputError: If transcription fails
         """
-        # This would be implemented using a speech-to-text service
-        # For now, we'll just return a placeholder
-
+        # Use SpeechRecognition to transcribe audio data
         try:
-            # This would be replaced with actual speech recognition
-            # e.g., using the Gemini API or another STT service
-            transcript = "Example transcription"
+            import speech_recognition as sr
 
+            recognizer = sr.Recognizer()
+            # Determine sample width from PyAudio format
+            sample_width = (
+                self.pyaudio.get_sample_size(self.FORMAT)
+                if self.pyaudio
+                else 2
+            )
+            # Create AudioData for recognition
+            audio_data_obj = sr.AudioData(
+                audio_data, self.RATE, sample_width
+            )
+            # Recognize using Google's free Web Speech API
+            transcript = await asyncio.to_thread(
+                recognizer.recognize_google, audio_data_obj
+            )
             return transcript
-
+        except sr.UnknownValueError:
+            # Speech was unintelligible; ignore
+            return None
         except Exception as e:
             self.logger.error(f"Error transcribing audio: {e}")
             raise InputError(f"Failed to transcribe audio: {e}")

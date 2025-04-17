@@ -204,6 +204,9 @@ class MainWindow(QMainWindow):
         # Connect app controller signals
         self.event_bus.subscribe(EventType.STATE_CHANGED, self.on_state_changed)
         self.event_bus.subscribe(EventType.ERROR, self.on_error)
+        # Log voice transcripts and AI responses
+        self.event_bus.subscribe(EventType.VOICE_TRANSCRIPT, self.on_voice_transcript)
+        self.event_bus.subscribe(EventType.AI_RESPONSE, self.on_ai_response)
 
     def load_settings(self):
         """Load application settings and update UI."""
@@ -289,6 +292,16 @@ class MainWindow(QMainWindow):
         """Handle error events from the app controller."""
         self.add_log(f"Error ({error_type}): {error_message}")
         self.statusBar().showMessage(f"Error: {error_type}")
+
+    def on_voice_transcript(self, transcript):
+        """Handle voice transcript events."""
+        self.add_log(f"User: {transcript}")
+        self.update_caption(transcript)
+
+    def on_ai_response(self, response):
+        """Handle AI response events."""
+        self.add_log(f"AI: {response}")
+        self.update_caption(response)
 
     def add_log(self, text):
         """Add text to the log widget."""

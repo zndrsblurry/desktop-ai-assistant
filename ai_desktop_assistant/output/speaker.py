@@ -100,6 +100,9 @@ class SpeakerOutputProvider(AudioOutputProvider):
         Raises:
             OutputError: If playing audio fails
         """
+        # Skip audio playback if voice feedback is disabled
+        if not self.config.voice_enabled:
+            return
         if not PYAUDIO_AVAILABLE:
             raise OutputError("PyAudio not available. Audio output is not supported.")
 
@@ -145,13 +148,15 @@ class SpeakerOutputProvider(AudioOutputProvider):
         # This would be implemented using a text-to-speech service
         # For now, we'll just log the text
 
+        # If voice feedback is disabled, skip speaking
+        if not self.config.voice_enabled:
+            return
         self.logger.info(f"Speaking: {text}")
 
-        # In a real implementation, this would convert text to audio
-        # and then play it using play_audio()
-
-        # Placeholder for TTS (simulate speaking with a delay)
-        await asyncio.sleep(len(text) * 0.05)  # Rough estimate of speaking time
+        # Placeholder for TTS: simulate speaking with a delay adjusted by speech rate
+        rate = self.config.speech_rate if hasattr(self.config, 'speech_rate') else 1.0
+        duration = len(text) * 0.05 / rate
+        await asyncio.sleep(duration)
 
     async def stop_speaking(self) -> None:
         """

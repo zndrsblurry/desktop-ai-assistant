@@ -108,6 +108,20 @@ def load_config() -> AppConfig:
     if log_level := os.environ.get("LOG_LEVEL") or os.environ.get("AI_ASSISTANT_LOG_LEVEL"):
         config.log_level = log_level
 
+    # Preferred AI voice for audio responses (from environment)
+    # Supported voices: Puck, Charon, Kore, Fenrir, Aoede, Leda, Orus, Zephyr
+    if voice := os.environ.get("AI_VOICE_NAME"):
+        config.preferred_voice = voice
+    # Master switch for voice input/output
+    if speech_enabled := os.environ.get("AUDIO_SPEECH_ENABLED"):
+        config.voice_enabled = speech_enabled.strip().lower() in ("1", "true", "yes")
+    # Playback rate for AI speech (multiplier, e.g., 1.0 normal speed)
+    if rate := os.environ.get("AI_SPEECH_RATE"):
+        try:
+            config.speech_rate = float(rate)
+        except ValueError:
+            logger.warning(f"Invalid AI_SPEECH_RATE value: {rate}")
+
     # Check for required config
     if not config.api_key:
         logger.warning(

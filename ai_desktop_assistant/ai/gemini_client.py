@@ -12,6 +12,7 @@ from google import genai
 from google.genai import types as genai_types
 
 from ai_desktop_assistant.core.exceptions import APIError, ConfigurationError
+from ai_desktop_assistant.core.config import AppConfig
 
 
 class GeminiClient:
@@ -22,15 +23,16 @@ class GeminiClient:
     a convenient interface for our application.
     """
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, config: "AppConfig"):
         """
         Initialize the Gemini client.
 
         Args:
-            api_key: The API key for authenticating with Google Generative AI
+            config: Application configuration containing API key and voice settings
         """
         self.logger = logging.getLogger(__name__)
-        self.api_key = api_key
+        self.config = config
+        self.api_key = config.api_key
         self.client = None
         self.live_session = None
 
@@ -142,11 +144,19 @@ class GeminiClient:
             if tools:
                 config["tools"] = tools
 
+            # Configure voice for audio responses if specified in config
+            if self.config.preferred_voice:
+                config["speech_config"] = genai_types.SpeechConfig(
+                    voice_config=genai_types.VoiceConfig(
+                        prebuilt_voice_config=genai_types.PrebuiltVoiceConfig(
+                            voice_name=self.config.preferred_voice
+                        )
+                    )
+                )
             # Create the session
             self.live_session = await self.client.aio.live.connect(
                 model=model_name, config=config
             )
-
             self.logger.info(f"Started live session with model {model_name}")
 
         except Exception as e:

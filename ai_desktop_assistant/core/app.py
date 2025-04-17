@@ -74,7 +74,7 @@ class ApplicationController(QObject):
         self._container.register_instance(self._state)
 
         # Initialize AI service with Gemini client
-        gemini_client = GeminiClient(config.api_key)
+        gemini_client = GeminiClient(config)
         self._container.register_instance(gemini_client)
 
         self._ai_service = AIServiceImpl(gemini_client, self._event_bus)
