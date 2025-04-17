@@ -172,6 +172,10 @@ class ApplicationController(QObject):
         self._state.assistant_state = "starting"
         self._event_bus.publish(EventType.STATE_CHANGED, "assistant_state", "starting")
         self.logger.info("Starting assistant")
+        # Start listening for microphone activity to update UI volume indicator
+        asyncio.run_coroutine_threadsafe(
+            self._mic_input.start_listening(), self._loop
+        )
 
         # Start live audio conversation: stream mic directly to AI and play responses
         asyncio.run_coroutine_threadsafe(

@@ -36,6 +36,10 @@ class DashboardScreen(QWidget):
     # Signal to log user speech transcripts in the dashboard log
     voice_transcript_signal = pyqtSignal(str)
     ai_response_signal = pyqtSignal(str)
+    # Signals for action events (command logging)
+    action_start_signal = pyqtSignal(str, object)
+    action_complete_signal = pyqtSignal(str, object)
+    action_failed_signal = pyqtSignal(str, object)
 
     def __init__(self, container: DependencyContainer, event_bus: EventBus):
         super().__init__()
@@ -57,6 +61,10 @@ class DashboardScreen(QWidget):
         self.voice_transcript_signal.connect(self.on_voice_transcript, Qt.QueuedConnection)
         # Connect AI response signal to logging handler
         self.ai_response_signal.connect(self.on_ai_response, Qt.QueuedConnection)
+        # Connect action signals for command logging
+        self.action_start_signal.connect(self.on_action_start, Qt.QueuedConnection)
+        self.action_complete_signal.connect(self.on_action_complete, Qt.QueuedConnection)
+        self.action_failed_signal.connect(self.on_action_failed, Qt.QueuedConnection)
 
         # Subscribe to voice events for visual feedback via signal emitters
         from ai_desktop_assistant.core.events import EventType
@@ -67,6 +75,10 @@ class DashboardScreen(QWidget):
         self.event_bus.subscribe(EventType.VOICE_TRANSCRIPT, self._emit_voice_transcript)
         # Subscribe to AI response events to log AI speech
         self.event_bus.subscribe(EventType.AI_RESPONSE, self._emit_ai_response)
+        # Subscribe to action events for logging command activity
+        self.event_bus.subscribe(EventType.ACTION_START, self._emit_action_start)
+        self.event_bus.subscribe(EventType.ACTION_COMPLETE, self._emit_action_complete)
+        self.event_bus.subscribe(EventType.ACTION_FAILED, self._emit_action_failed)
 
     def setup_ui(self):
         """Set up the dashboard UI components."""
@@ -440,3 +452,29 @@ class DashboardScreen(QWidget):
     def on_ai_response(self, response: str):
         """Handle AI response transcript by logging it."""
         self.add_log(f"AI: {response}")
+    
+    # Internal emitters for action events from other threads
+    def _emit_action_start(self, action_type, params):
+        """Emit action start event to be logged in main thread."""
+        self.action_start_signal.emit(action_type, params)
+
+    def _emit_action_complete(self, action_type, result):
+        """Emit action complete event to be logged in main thread."""
+        self.action_complete_signal.emit(action_type, result)
+
+    def _emit_action_failed(self, action_type, error_message):
+        """Emit action failed event to be logged in main thread."""
+        self.action_failed_signal.emit(action_type, error_message)
+
+    # Handlers for action events to update the activity log
+    def on_action_start(self, action_type, params):
+        """Log when an action starts."""
+        self.add_log(f"Action started: {action_type} with params {params}")
+
+    def on_action_complete(self, action_type, result):
+        """Log when an action completes successfully."""
+        self.add_log(f"Action completed: {action_type} with result {result}")
+
+    def on_action_failed(self, action_type, error_message):
+        """Log when an action fails."""
+        self.add_log(f"Action failed: {action_type} with error {error_message}")
