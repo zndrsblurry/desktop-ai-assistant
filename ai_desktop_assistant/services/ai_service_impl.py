@@ -202,6 +202,13 @@ class AIServiceImpl(AIService):
                 async for response in session.receive():
                     if response.data:
                         audio_bytes += response.data
+            # Publish event with audio bytes for UI playback/storage
+            try:
+                # SPEECH_END indicates TTS audio for the AI response is ready
+                self.event_bus.publish(EventType.SPEECH_END, audio_bytes)
+            except Exception:
+                # Swallow any errors during event publishing
+                pass
             return audio_bytes
 
         except Exception as e:

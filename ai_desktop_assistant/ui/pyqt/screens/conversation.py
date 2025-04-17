@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
-    QTextEdit,
+    QTextBrowser,
     QLineEdit,
     QPushButton,
 )
@@ -25,6 +25,8 @@ class ConversationScreen(QWidget):
         super().__init__()
         self.container = container
         self.event_bus = event_bus
+        # Storage for AI audio bytes keyed by identifier
+        self.audio_messages = {}
         # Get application controller to send inputs
         self.app_controller = container.resolve(ApplicationController)
 
@@ -36,13 +38,20 @@ class ConversationScreen(QWidget):
         # Remove duplicate VOICE_TRANSCRIPT subscription to avoid processing messages twice
         # self.event_bus.subscribe(EventType.VOICE_TRANSCRIPT, self.on_user_message)
         self.event_bus.subscribe(EventType.AI_RESPONSE, self.on_ai_response)
+        # Subscribe to speech end events to handle audio playback links
+        self.event_bus.subscribe(EventType.SPEECH_END, self.on_speech_end)
 
     def setup_ui(self):
         """Set up the conversation UI."""
         layout = QVBoxLayout(self)
         # Display area for conversation
-        self.conversation_view = QTextEdit()
-        self.conversation_view.setReadOnly(True)
+        # Use QTextBrowser to enable clickable audio links
+        self.conversation_view = QTextBrowser()
+        # Disable automatic link opening to handle clicks manually
+        self.conversation_view.setOpenExternalLinks(False)
+        self.conversation_view.setOpenLinks(False)
+        # Connect link clicks to handler
+        self.conversation_view.anchorClicked.connect(self.on_anchor_clicked)
         layout.addWidget(self.conversation_view)
 
         # Input area
@@ -91,3 +100,29 @@ class ConversationScreen(QWidget):
         else:
             self.app_controller.stopListening()
             self.mic_button.setText("🎤")
+    
+    def on_speech_end(self, audio_bytes: bytes):
+        """
+        Handler for AI TTS audio ready events; store audio and append playback link.
+        """
+        import uuid
+        msg_id = uuid.uuid4().hex
+        self.audio_messages[msg_id] = audio_bytes
+        self.conversation_view.append(f'<i><a href="ai_audio://{msg_id}">▶️ Play Audio</a></i>')
+
+    def on_anchor_clicked(self, qurl):
+        """
+        Handle clicks on audio playback links.
+        """
+        if qurl.scheme() != 'ai_audio':
+            return
+        msg_id = qurl.path().lstrip('/')
+        audio_bytes = self.audio_messages.get(msg_id)
+        if not audio_bytes:
+            return
+        from ai_desktop_assistant.output.speaker import SpeakerOutputProvider
+        from ai_desktop_assistant.core.app import ApplicationController
+        import asyncio
+        speaker = self.container.resolve(SpeakerOutputProvider)
+        controller = self.container.resolve(ApplicationController)
+        asyncio.run_coroutine_threadsafe(speaker.play_audio(audio_bytes), controller._loop)
