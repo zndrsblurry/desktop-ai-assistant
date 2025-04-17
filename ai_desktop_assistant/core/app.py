@@ -148,10 +148,9 @@ class ApplicationController(QObject):
         self._event_bus.publish(EventType.STATE_CHANGED, "assistant_state", "starting")
         self.logger.info("Starting assistant")
 
-        # Activate voice recognition
-        import asyncio
-        # Begin listening for voice input
-        asyncio.create_task(self._mic_input.start_listening())
+        # Activate voice recognition: schedule listening on the asyncio event loop
+        loop = asyncio.get_event_loop()
+        loop.create_task(self._mic_input.start_listening())
 
         # Transition to listening state
         self._state.assistant_state = "listening"
@@ -164,9 +163,9 @@ class ApplicationController(QObject):
         self._event_bus.publish(EventType.STATE_CHANGED, "assistant_state", "stopping")
         self.logger.info("Stopping assistant")
 
-        # Stop voice recognition
-        import asyncio
-        asyncio.create_task(self._mic_input.stop_listening())
+        # Stop voice recognition: schedule stop on the asyncio event loop
+        loop = asyncio.get_event_loop()
+        loop.create_task(self._mic_input.stop_listening())
 
         # Transition to idle state
         self._state.assistant_state = "idle"

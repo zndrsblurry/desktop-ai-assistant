@@ -10,6 +10,7 @@ It initializes the core components and starts the UI.
 
 import sys
 import asyncio
+import threading
 
 from ai_desktop_assistant.core.config import AppConfig, load_config
 from ai_desktop_assistant.core.di import DependencyContainer
@@ -64,13 +65,22 @@ def main():
         loop = asyncio.get_event_loop()
         loop.run_until_complete(app_controller.initialize())
 
-        # Start the PyQt5 UI
+        # Run remaining asyncio tasks in background
+        thread = threading.Thread(target=loop.run_forever, daemon=True)
+        thread.start()
+
+        # Start the PyQt5 UI (blocks until UI exit)
         exit_code = run_pyqt_ui(container, event_bus)
+
+        # Stop asyncio loop thread
+        logger.info("Stopping asyncio event loop")
+        loop.call_soon_threadsafe(loop.stop)
+        thread.join()
 
         # Perform graceful shutdown
         logger.info("Shutting down application")
         loop.run_until_complete(app_controller.shutdown())
-
+        loop.close()
         return exit_code
 
     except Exception as e:
