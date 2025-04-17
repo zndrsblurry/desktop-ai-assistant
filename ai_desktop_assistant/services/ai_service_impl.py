@@ -8,6 +8,7 @@ This module implements the AI service interface using the Gemini client.
 import logging
 from typing import Any, Dict, List, Optional
 
+from google import genai
 from google.genai import types as genai_types
 
 from ai_desktop_assistant.ai.gemini_client import GeminiClient
@@ -151,10 +152,11 @@ class AIServiceImpl(AIService):
         """
         # Implement text-to-speech using Gemini Live API audio streaming.
         try:
-            # Ensure Gemini client is initialized
-            if not self.gemini_client.client:
-                await self.gemini_client.initialize()
-
+            # Use a separate Gemini client instance for audio (v1alpha) to support TTS streaming
+            audio_client = genai.Client(
+                api_key=self.gemini_client.api_key,
+                http_options={"api_version": "v1alpha"},
+            )
             # Configure for audio-only response
             config = {"response_modalities": ["AUDIO"]}
             # Add preferred voice if specified
@@ -168,19 +170,19 @@ class AIServiceImpl(AIService):
                 )
 
             # Open a live session for TTS
-            async with self.gemini_client.client.aio.live.connect(
+            async with audio_client.aio.live.connect(
                 model="gemini-2.0-flash-live-001", config=config
             ) as session:
                 # Send the text as user input
-                await session.send(input=text, end_of_turn=True)
-
+                await session.send_client_content(
+                    turns={"role": "user", "parts": [{"text": text}]},
+                    turn_complete=True,
+                )
                 # Collect audio data chunks
                 audio_bytes = b""
-                turn = session.receive()
-                async for response in turn:
-                    if data := response.data:
-                        audio_bytes += data
-
+                async for response in session.receive():
+                    if response.data:
+                        audio_bytes += response.data
             return audio_bytes
 
         except Exception as e:
