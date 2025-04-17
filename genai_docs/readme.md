@@ -32,6 +32,8 @@ The following Python examples demonstrate key features of the Gemini Live API:
 
 11. **[media_resolution.py](media_resolution.py)** - Configuring media resolution for input media processing.
 
+12. **[full_livestream_example.py](full_livestream_example.py)** - Complete example with audio, video, and text communication, supporting both camera and screen capture modes.
+
 ## Key Features
 
 - **Bidirectional Communication**: Real-time interaction with the model
