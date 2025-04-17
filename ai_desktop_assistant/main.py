@@ -11,7 +11,7 @@ It initializes the core components and starts the UI.
 import sys
 import asyncio
 
-from ai_desktop_assistant.core.config import AppConfig
+from ai_desktop_assistant.core.config import AppConfig, load_config
 from ai_desktop_assistant.core.di import DependencyContainer
 from ai_desktop_assistant.core.events import EventBus
 from ai_desktop_assistant.core.app import ApplicationController
@@ -41,8 +41,10 @@ def main():
     try:
         logger.info("Starting AI Desktop Assistant")
 
-        # Load configuration
-        config = AppConfig()
+        # Load environment variables and configuration
+        from dotenv import load_dotenv
+        load_dotenv()
+        config = load_config()
         print(f"Loaded configuration: {config.app_name} v{config.app_version}")
         logger.info(f"Loaded configuration: {config.app_name} v{config.app_version}")
 

@@ -10,6 +10,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
+from dotenv import load_dotenv
 
 
 @dataclass
@@ -55,6 +56,8 @@ def load_config() -> AppConfig:
     Returns:
         AppConfig object with loaded configuration
     """
+    # Load environment variables from .env file if present
+    load_dotenv()
     logger = logging.getLogger(__name__)
 
     # Create default config
@@ -76,17 +79,22 @@ def load_config() -> AppConfig:
             logger.error(f"Error loading config file: {e}")
 
     # Override with environment variables
-    if api_key := os.environ.get("GOOGLE_API_KEY"):
-        print(f"api_key: {api_key}")
+    # API key for Gemini (supports GEMINI_API_KEY or fallback to GOOGLE_API_KEY)
+    if api_key := os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
         config.api_key = api_key
 
-    if model := os.environ.get("AI_ASSISTANT_MODEL"):
+    # AI model name from environment (supports AI_MODEL_NAME or legacy AI_ASSISTANT_MODEL)
+    if model := os.environ.get("AI_MODEL_NAME") or os.environ.get("AI_ASSISTANT_MODEL"):
         config.default_model = model
 
-    if theme := os.environ.get("AI_ASSISTANT_THEME"):
+    # UI theme and accent color
+    if theme := os.environ.get("UI_THEME"):
         config.theme = theme
+    if accent := os.environ.get("UI_ACCENT_COLOR"):
+        config.accent_color = accent
 
-    if log_level := os.environ.get("AI_ASSISTANT_LOG_LEVEL"):
+    # Logging level override
+    if log_level := os.environ.get("LOG_LEVEL") or os.environ.get("AI_ASSISTANT_LOG_LEVEL"):
         config.log_level = log_level
 
     # Check for required config
