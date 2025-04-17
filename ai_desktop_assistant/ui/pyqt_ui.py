@@ -18,7 +18,9 @@ def run_pyqt_ui(container: DependencyContainer, event_bus: EventBus):
     # Register QTextCursor as a meta type for queued signal connections
     try:
         from PyQt5.QtCore import qRegisterMetaType
-        qRegisterMetaType("QTextCursor")
+        from PyQt5.QtGui import QTextCursor
+        # Register QTextCursor type for queued signal connections
+        qRegisterMetaType(QTextCursor, "QTextCursor")
     except Exception:
         logger.warning("Could not register QTextCursor meta type")
     app = QApplication(sys.argv)

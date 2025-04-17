@@ -156,6 +156,8 @@ def extract_text_from_image(
     Returns:
         The extracted text as a string, or None if OCR fails or library unavailable.
     """
+    global TESSERACT_AVAILABLE
+    # Check for OCR library availability
     if not TESSERACT_AVAILABLE:
         logger.error("pytesseract/Tesseract-OCR is required for OCR.")
         return None
@@ -215,6 +217,8 @@ def get_ocr_data(
         'word_num', 'left', 'top', 'width', 'height', 'conf', 'text'.
         Returns None on failure.
     """
+    # Allow updating the module-level OCR availability flag
+    global TESSERACT_AVAILABLE
     if not TESSERACT_AVAILABLE:
         logger.error("pytesseract/Tesseract-OCR is required for OCR data extraction.")
         return None

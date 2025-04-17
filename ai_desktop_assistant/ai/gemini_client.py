@@ -38,6 +38,8 @@ class GeminiClient:
         self.live_session = None
         # Context manager for live session (for cleanup)
         self.live_session_cm = None
+        # Client for text-to-speech audio streaming (v1alpha)
+        self.tts_client = None
         # Lock to prevent concurrent send/receive on the live session
         self._send_lock = asyncio.Lock()
 
@@ -132,8 +134,13 @@ class GeminiClient:
         Raises:
             APIError: If session creation fails
         """
+        # Ensure the main client is initialized
         if not self.client:
             await self.initialize()
+        # Select appropriate client for modality: use TTS client for audio, main client otherwise
+        client_to_use = self.client
+        if response_modality.upper() == "AUDIO":
+            client_to_use = self.get_tts_client()
 
         try:
             # Configure the session
@@ -158,13 +165,13 @@ class GeminiClient:
                         )
                     )
                 )
-            # Create the live session context manager
-            cm = self.client.aio.live.connect(model=model_name, config=config)
+            # Create the live session context manager using selected client
+            cm = client_to_use.aio.live.connect(model=model_name, config=config)
             # Enter context to establish the session
             self.live_session = await cm.__aenter__()
             # Store context manager for potential cleanup
             self.live_session_cm = cm
-            self.logger.info(f"Started live session with model {model_name}")
+            self.logger.info(f"Started live session with model {model_name} (modality={response_modality})")
 
         except Exception as e:
             self.logger.error(f"Error starting live session: {e}")
@@ -229,3 +236,15 @@ class GeminiClient:
         except Exception as e:
             self.logger.error(f"Error closing live session: {e}")
             raise APIError(f"Failed to close live session: {e}")
+    
+    def get_tts_client(self) -> genai.Client:
+        """
+        Get or create the text-to-speech client using the v1alpha API.
+        """
+        if not self.tts_client:
+            # Initialize a separate client instance for audio streaming (v1alpha)
+            self.tts_client = genai.Client(
+                api_key=self.api_key,
+                http_options={"api_version": "v1alpha"},
+            )
+        return self.tts_client

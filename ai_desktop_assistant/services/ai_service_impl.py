@@ -17,6 +17,7 @@ from ai_desktop_assistant.ai.prompt_templates import create_system_prompt
 from ai_desktop_assistant.core.events import EventBus, EventType
 from ai_desktop_assistant.core.exceptions import APIError
 from ai_desktop_assistant.interfaces.ai_service import AIService
+from websockets.exceptions import ConnectionClosed
 
 
 class AIServiceImpl(AIService):
@@ -173,11 +174,8 @@ class AIServiceImpl(AIService):
         """
         # Implement text-to-speech using Gemini Live API audio streaming.
         try:
-            # Use a separate Gemini client instance for audio (v1alpha) to support TTS streaming
-            audio_client = genai.Client(
-                api_key=self.gemini_client.api_key,
-                http_options={"api_version": "v1alpha"},
-            )
+            # Use a shared Gemini client audio instance (v1alpha) for TTS streaming
+            audio_client = self.gemini_client.get_tts_client()
             # Configure for audio-only response
             config = {"response_modalities": ["AUDIO"]}
             # Add preferred voice if specified
@@ -261,6 +259,10 @@ class AIServiceImpl(AIService):
 
             # Run send and receive concurrently
             await asyncio.gather(_send_audio(), _receive_audio())
+        except ConnectionClosed:
+            # Normal closure of WebSocket session
+            self.logger.info("Live audio conversation ended normally")
+            return
         except Exception as e:
             self.logger.error(f"Error in live audio conversation: {e}")
             self.event_bus.publish(EventType.AI_ERROR, str(e))

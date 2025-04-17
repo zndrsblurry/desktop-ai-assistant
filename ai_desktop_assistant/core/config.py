@@ -10,7 +10,12 @@ import logging
 import os
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, List
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    # dotenv not installed; define no-op load_dotenv
+    def load_dotenv(*args, **kwargs):
+        return None
 
 
 @dataclass

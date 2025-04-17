@@ -52,6 +52,13 @@ class ApplicationController(QObject):
         self._is_initialized = False
         self._main_window = None  # For PyQt5 UI reference
 
+        # Register Qt metatype for QTextCursor to allow queued connections in QML UI
+        try:
+            from PySide6.QtCore import qRegisterMetaType
+            from PySide6.QtGui import QTextCursor
+            qRegisterMetaType(QTextCursor, "QTextCursor")
+        except Exception as ex:
+            self.logger.warning(f"Could not register QTextCursor meta type: {ex}")
         # Register event handlers
         self._event_bus.subscribe(EventType.STATE_CHANGED, self._on_state_changed)
         self._event_bus.subscribe(EventType.ERROR, self._on_error)
@@ -152,11 +159,14 @@ class ApplicationController(QObject):
         Ensure a live audio session is active and send the greeting.
         """
         try:
-            # Send the greeting prompt as AI text and handle the response
-            response = await self._ai_service.process_text(greeting)
+            # Generate greeting text using content generation (avoids live session conflicts)
+            response = await self._ai_service.gemini_client.generate_content(greeting)
             self.logger.info(f"AI greeting response: {response}")
-            # Trigger the AI response event to ensure it's processed
+            # Publish greeting text for UI display
             self._event_bus.publish(EventType.AI_RESPONSE, response)
+            # Convert greeting text to speech and play audio
+            audio_bytes = await self._ai_service.get_speech(response)
+            await self._speaker_output.play_audio(audio_bytes)
         except Exception as e:
             self.logger.error(f"Error sending greeting: {e}")
 
@@ -172,6 +182,18 @@ class ApplicationController(QObject):
         self._state.assistant_state = "starting"
         self._event_bus.publish(EventType.STATE_CHANGED, "assistant_state", "starting")
         self.logger.info("Starting assistant")
+        # Prompt the AI to greet the user via TTS before starting live audio conversation
+        greeting_prompt = "Hi boss, how can I help you today?"
+        try:
+            future = asyncio.run_coroutine_threadsafe(
+                self._init_session_and_greet(greeting_prompt), self._loop
+            )
+            # Wait for greeting to complete (with timeout)
+            future.result(timeout=10)
+            self.logger.info(f"Greeting sent: {greeting_prompt}")
+        except Exception as e:
+            self.logger.error(f"Error sending greeting: {e}")
+
         # Start listening for microphone activity to update UI volume indicator
         asyncio.run_coroutine_threadsafe(
             self._mic_input.start_listening(), self._loop
@@ -188,19 +210,6 @@ class ApplicationController(QObject):
         # Transition to listening state
         self._state.assistant_state = "listening"
         self._event_bus.publish(EventType.STATE_CHANGED, "assistant_state", "listening")
-
-        # Prompt the AI to greet the user via the live session (ensure session initialized)
-        greeting_prompt = "Hi boss, how can I help you today?"
-        try:
-            # Synchronously send greeting before proceeding
-            future = asyncio.run_coroutine_threadsafe(
-                self._init_session_and_greet(greeting_prompt), self._loop
-            )
-            # Wait for greeting to complete (with timeout)
-            future.result(timeout=5)
-            self.logger.info(f"Greeting sent: {greeting_prompt}")
-        except Exception as e:
-            self.logger.error(f"Error sending greeting: {e}")
 
     def stop_assistant(self):
         """Stop the assistant."""
