@@ -62,6 +62,10 @@ class ApplicationController(QObject):
         self._text_input = None
         self._speaker_output = None
 
+        # Capture the asyncio event loop for scheduling coroutines from the UI thread
+        # This loop is started in a background thread via run_forever in main
+        self._loop = asyncio.get_event_loop()
+
     async def initialize(self):
         """Initialize all services and components."""
         if self._is_initialized:
@@ -151,9 +155,10 @@ class ApplicationController(QObject):
         self._event_bus.publish(EventType.STATE_CHANGED, "assistant_state", "starting")
         self.logger.info("Starting assistant")
 
-        # Activate voice recognition: schedule listening on the asyncio event loop
-        loop = asyncio.get_event_loop()
-        loop.create_task(self._mic_input.start_listening())
+        # Activate voice recognition: schedule listening on the background asyncio loop
+        asyncio.run_coroutine_threadsafe(
+            self._mic_input.start_listening(), self._loop
+        )
 
         # Transition to listening state
         self._state.assistant_state = "listening"
@@ -166,9 +171,10 @@ class ApplicationController(QObject):
         self._event_bus.publish(EventType.STATE_CHANGED, "assistant_state", "stopping")
         self.logger.info("Stopping assistant")
 
-        # Stop voice recognition: schedule stop on the asyncio event loop
-        loop = asyncio.get_event_loop()
-        loop.create_task(self._mic_input.stop_listening())
+        # Stop voice recognition: schedule stop on the background asyncio loop
+        asyncio.run_coroutine_threadsafe(
+            self._mic_input.stop_listening(), self._loop
+        )
 
         # Transition to idle state
         self._state.assistant_state = "idle"
@@ -232,17 +238,26 @@ class ApplicationController(QObject):
         Args:
             text: The text to process
         """
-        asyncio.create_task(self._text_input.process_text(text))
+        # Schedule text processing coroutine on the background asyncio loop
+        asyncio.run_coroutine_threadsafe(
+            self._text_input.process_text(text), self._loop
+        )
 
     @Slot()
     def startListening(self):
         """Start listening for voice input."""
-        asyncio.create_task(self._mic_input.start_listening())
+        # Schedule microphone start coroutine on the background asyncio loop
+        asyncio.run_coroutine_threadsafe(
+            self._mic_input.start_listening(), self._loop
+        )
 
     @Slot()
     def stopListening(self):
         """Stop listening for voice input."""
-        asyncio.create_task(self._mic_input.stop_listening())
+        # Schedule microphone stop coroutine on the background asyncio loop
+        asyncio.run_coroutine_threadsafe(
+            self._mic_input.stop_listening(), self._loop
+        )
 
     @Slot(bool)
     def setVoiceEnabled(self, enabled: bool):
