@@ -199,12 +199,8 @@ class ApplicationController(QObject):
             self._mic_input.start_listening(), self._loop
         )
 
-        # Start live audio conversation: stream mic directly to AI and play responses
-        asyncio.run_coroutine_threadsafe(
-            self._ai_service.live_audio_conversation(self._mic_input, self._speaker_output),
-            self._loop
-        )
-        # Note: retain text input processing to allow conversation tab chat
+        # Live audio streaming is disabled to prevent concurrency issues with chat sessions.
+        # Audio input will be processed via transcription and TTS pipeline instead.
 
         # Transition to listening state
         self._state.assistant_state = "listening"

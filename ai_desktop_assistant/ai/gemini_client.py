@@ -97,13 +97,17 @@ class GeminiClient:
             # Add the current prompt
             messages.append({"role": "user", "parts": [{"text": prompt}]})
 
-            # Generate content
-            response = self.client.models.generate_content(
-                model=model_name,
-                contents=messages,
-                tools=tools,
-                safety_settings=None,  # Use default safety settings
-            )
+            # Generate content (ignoring tools parameter, as it may not be supported by the SDK)
+            params = {
+                "model": model_name,
+                "contents": messages,
+                "safety_settings": None,  # Use default safety settings
+            }
+            if tools is not None:
+                self.logger.warning(
+                    "Tools parameter is not supported for content generation; ignoring tools."
+                )
+            response = self.client.models.generate_content(**params)
 
             # Extract and return the text
             if hasattr(response, "text"):
