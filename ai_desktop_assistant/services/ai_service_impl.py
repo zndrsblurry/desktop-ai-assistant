@@ -5,6 +5,7 @@ AI Service Implementation
 This module implements the AI service interface using the Gemini client.
 """
 
+import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -16,7 +17,6 @@ from ai_desktop_assistant.ai.prompt_templates import create_system_prompt
 from ai_desktop_assistant.core.events import EventBus, EventType
 from ai_desktop_assistant.core.exceptions import APIError
 from ai_desktop_assistant.interfaces.ai_service import AIService
-from ai_desktop_assistant.core.events import EventType
 
 
 class AIServiceImpl(AIService):
@@ -117,11 +117,32 @@ class AIServiceImpl(AIService):
         """
         # For now, we'll need to transcribe the audio data first
         # This would be handled by a separate speech-to-text service
-        # For simplicity, we'll implement a placeholder
 
         try:
-            # This would be replaced with actual transcription
-            transcription = "Hello, how can you help me?"
+            # Import the speech recognition library here
+            try:
+                import speech_recognition as sr
+            except ImportError:
+                self.logger.warning(
+                    "speech_recognition library not installed; using placeholder transcription."
+                )
+                transcription = "Hello, how can you help me?"
+            else:
+                # Use the speech recognition library to transcribe the audio
+                recognizer = sr.Recognizer()
+                sample_width = 2  # Assuming 16-bit audio
+                rate = 16000  # Assuming 16kHz sample rate
+                audio_data_obj = sr.AudioData(audio_data, rate, sample_width)
+                try:
+                    transcription = await asyncio.to_thread(
+                        recognizer.recognize_google, audio_data_obj
+                    )
+                except sr.UnknownValueError:
+                    self.logger.warning("Could not understand audio, using default response")
+                    transcription = ""  # Empty transcription will be handled by the AI
+                except Exception as e:
+                    self.logger.error(f"Error transcribing audio: {e}")
+                    transcription = ""  # Empty transcription will be handled by the AI
 
             # Log the transcription
             self.logger.info(f"Transcribed: {transcription}")

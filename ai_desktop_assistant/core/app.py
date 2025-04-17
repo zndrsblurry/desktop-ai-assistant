@@ -152,8 +152,17 @@ class ApplicationController(QObject):
         Ensure a live audio session is active and send the greeting.
         """
         try:
+            # Start the live audio session
             await self._ai_service.start_live_session_audio()
-            await self._ai_service.process_text(greeting)
+            self.logger.info("Live audio session started successfully")
+            
+            # Send the greeting prompt as AI text
+            response = await self._ai_service.process_text(greeting)
+            self.logger.info(f"AI greeting response: {response}")
+            
+            # Explicitly trigger the AI response event to ensure it's processed
+            # This is redundant since process_text already does this, but we do it just in case
+            self._event_bus.publish(EventType.AI_RESPONSE, response)
         except Exception as e:
             self.logger.error(f"Error initializing live session or sending greeting: {e}")
 
@@ -182,9 +191,13 @@ class ApplicationController(QObject):
         # Prompt the AI to greet the user via the live session (ensure session initialized)
         greeting_prompt = "Hi boss, how can I help you today?"
         try:
-            asyncio.run_coroutine_threadsafe(
+            # Make this synchronous to ensure it completes before continuing
+            future = asyncio.run_coroutine_threadsafe(
                 self._init_session_and_greet(greeting_prompt), self._loop
             )
+            # Wait for greeting to complete (with timeout)
+            future.result(timeout=5)
+            self.logger.info(f"Greeting sent: {greeting_prompt}")
         except Exception as e:
             self.logger.error(f"Error initializing live session and greeting: {e}")
 

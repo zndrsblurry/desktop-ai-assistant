@@ -101,9 +101,13 @@ class SpeakerOutputProvider(AudioOutputProvider):
             OutputError: If playing audio fails
         """
         # Skip audio playback if voice feedback is disabled
-        if not self.config.voice_enabled:
+        voice_enabled = getattr(self.config, 'voice_enabled', True)  # Default to True if not set
+        if not voice_enabled:
+            self.logger.info("Voice feedback is disabled, skipping audio playback")
             return
+            
         if not PYAUDIO_AVAILABLE:
+            self.logger.error("PyAudio not available. Audio output is not supported.")
             raise OutputError("PyAudio not available. Audio output is not supported.")
 
         try:
