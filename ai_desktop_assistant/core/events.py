@@ -113,10 +113,15 @@ class EventBus:
             f"Publishing {event_type.name} to {len(handlers)} subscribers"
         )
 
+        # Invoke handlers immediately for synchronous updates; schedule coroutines on the asyncio loop
         for handler in handlers:
             try:
-                # Schedule handler execution in the event loop
-                self._loop.call_soon(handler, *args, **kwargs)
+                if asyncio.iscoroutinefunction(handler):
+                    # Schedule coroutine handler on the event loop
+                    self._loop.create_task(handler(*args, **kwargs))
+                else:
+                    # Call synchronous handler directly
+                    handler(*args, **kwargs)
             except Exception as e:
                 self.logger.error(f"Error in event handler {handler.__qualname__}: {e}")
 
