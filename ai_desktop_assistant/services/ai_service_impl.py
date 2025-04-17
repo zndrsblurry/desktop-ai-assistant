@@ -8,11 +8,14 @@ This module implements the AI service interface using the Gemini client.
 import logging
 from typing import Any, Dict, List, Optional
 
+from google.genai import types as genai_types
+
 from ai_desktop_assistant.ai.gemini_client import GeminiClient
 from ai_desktop_assistant.ai.prompt_templates import create_system_prompt
 from ai_desktop_assistant.core.events import EventBus, EventType
 from ai_desktop_assistant.core.exceptions import APIError
 from ai_desktop_assistant.interfaces.ai_service import AIService
+from ai_desktop_assistant.core.events import EventType
 
 
 class AIServiceImpl(AIService):
@@ -83,6 +86,21 @@ class AIServiceImpl(AIService):
             self.event_bus.publish(EventType.AI_ERROR, str(e))
             raise APIError(f"Failed to process text: {e}")
 
+    async def start_live_session_audio(self) -> None:
+        """
+        Explicitly start a live session in AUDIO mode using the system prompt.
+        """
+        try:
+            await self.gemini_client.start_live_session(
+                response_modality="AUDIO",
+                system_instruction=self.system_prompt,
+            )
+            self.is_live_session_active = True
+        except Exception as e:
+            self.logger.error(f"Error starting live audio session: {e}")
+            self.event_bus.publish(EventType.AI_ERROR, str(e))
+            raise APIError(f"Failed to start live audio session: {e}")
+
     async def process_voice(self, audio_data: bytes) -> Dict[str, Any]:
         """
         Process voice input and generate a response.
@@ -131,15 +149,39 @@ class AIServiceImpl(AIService):
         Raises:
             APIError: If conversion fails
         """
-        # This would be implemented using a text-to-speech service
-        # For now, we'll just return a placeholder
-
+        # Implement text-to-speech using Gemini Live API audio streaming.
         try:
-            # This would be replaced with actual text-to-speech
-            # e.g., using the Gemini API or another TTS service
-            audio_data = b"placeholder_audio_data"
+            # Ensure Gemini client is initialized
+            if not self.gemini_client.client:
+                await self.gemini_client.initialize()
 
-            return audio_data
+            # Configure for audio-only response
+            config = {"response_modalities": ["AUDIO"]}
+            # Add preferred voice if specified
+            if voice := self.gemini_client.config.preferred_voice:
+                config["speech_config"] = genai_types.SpeechConfig(
+                    voice_config=genai_types.VoiceConfig(
+                        prebuilt_voice_config=genai_types.PrebuiltVoiceConfig(
+                            voice_name=voice
+                        )
+                    )
+                )
+
+            # Open a live session for TTS
+            async with self.gemini_client.client.aio.live.connect(
+                model="gemini-2.0-flash-live-001", config=config
+            ) as session:
+                # Send the text as user input
+                await session.send(input=text, end_of_turn=True)
+
+                # Collect audio data chunks
+                audio_bytes = b""
+                turn = session.receive()
+                async for response in turn:
+                    if data := response.data:
+                        audio_bytes += data
+
+            return audio_bytes
 
         except Exception as e:
             self.logger.error(f"Error converting text to speech: {e}")

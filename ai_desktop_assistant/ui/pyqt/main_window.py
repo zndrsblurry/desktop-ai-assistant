@@ -289,6 +289,9 @@ class MainWindow(QMainWindow):
         if state_name == "assistant_state":
             self.dashboard.update_status(state_value)
             self.statusBar().showMessage(f"Assistant: {state_value}")
+            # On stop/idle, hide any caption overlay
+            if state_value == "idle" and hasattr(self, "caption_overlay"):
+                self.caption_overlay.hide()
         elif state_name == "is_busy":
             self.dashboard.update_busy_indicator(state_value)
 

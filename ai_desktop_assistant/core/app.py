@@ -146,6 +146,16 @@ class ApplicationController(QObject):
         """
         self._main_window = main_window
         self.logger.info("Main window registered with application controller")
+    
+    async def _init_session_and_greet(self, greeting: str) -> None:
+        """
+        Ensure a live audio session is active and send the greeting.
+        """
+        try:
+            await self._ai_service.start_live_session_audio()
+            await self._ai_service.process_text(greeting)
+        except Exception as e:
+            self.logger.error(f"Error initializing live session or sending greeting: {e}")
 
     def start_assistant(self):
         """Start the assistant."""
@@ -169,15 +179,14 @@ class ApplicationController(QObject):
         self._state.assistant_state = "listening"
         self._event_bus.publish(EventType.STATE_CHANGED, "assistant_state", "listening")
 
-        # Prompt the AI to greet the user via the live session
+        # Prompt the AI to greet the user via the live session (ensure session initialized)
+        greeting_prompt = "Hi boss, how can I help you today?"
         try:
-            greeting_prompt = "Hi boss, how can I help you today?"
-            # This will send the prompt to the AI, triggering an AI_RESPONSE and playback
             asyncio.run_coroutine_threadsafe(
-                self._ai_service.process_text(greeting_prompt), self._loop
+                self._init_session_and_greet(greeting_prompt), self._loop
             )
         except Exception as e:
-            self.logger.error(f"Error prompting AI to greet: {e}")
+            self.logger.error(f"Error initializing live session and greeting: {e}")
 
     def stop_assistant(self):
         """Stop the assistant."""
@@ -194,6 +203,10 @@ class ApplicationController(QObject):
         # Transition to idle state
         self._state.assistant_state = "idle"
         self._event_bus.publish(EventType.STATE_CHANGED, "assistant_state", "idle")
+        # Ensure live session and related resources are cleaned up
+        asyncio.run_coroutine_threadsafe(
+            self._ai_service.shutdown(), self._loop
+        )
 
     def pause_assistant(self):
         """Pause the assistant."""
