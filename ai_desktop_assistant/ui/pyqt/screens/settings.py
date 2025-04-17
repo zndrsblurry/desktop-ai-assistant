@@ -113,10 +113,15 @@ class SettingsScreen(QWidget):
         voice_layout = QHBoxLayout()
         voice_label = QLabel("Voice:")
         self.voice_combo = QComboBox()
-        self.voice_combo.addItems(["alloy", "echo", "fable", "onyx", "nova", "shimmer"])
+        # Define offline (standard) and online (natural) voice lists
+        self.offline_voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+        self.online_voices = ["Puck", "Charon", "Kore", "Fenrir", "Aoede", "Leda", "Orus", "Zephyr"]
+        # Populate with offline voices by default
+        self.voice_combo.addItems(self.offline_voices)
 
-        # Connect the radio button to enable/disable combo
+        # Connect toggles: enable combo and update voice list when natural TTS is selected
         self.natural_tts_radio.toggled.connect(self.voice_combo.setEnabled)
+        self.natural_tts_radio.toggled.connect(self.on_tts_type_toggled)
 
         voice_layout.addWidget(voice_label)
         voice_layout.addWidget(self.voice_combo)
@@ -266,3 +271,18 @@ class SettingsScreen(QWidget):
             # Additional settings can be added here as needed
         }
         return settings
+    
+    def on_tts_type_toggled(self, checked: bool):
+        """Update the voice combo list when switching TTS type."""
+        # If natural (online) TTS is selected, show online voices; otherwise show offline
+        if not hasattr(self, 'voice_combo'):
+            return
+        # Clear existing items
+        self.voice_combo.clear()
+        # Populate appropriate voice list
+        if checked:
+            # Natural (online) voices
+            self.voice_combo.addItems(self.online_voices)
+        else:
+            # Standard (offline) voices
+            self.voice_combo.addItems(self.offline_voices)

@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import (
     QTextEdit,
     QRadioButton,
     QButtonGroup,
+    QProgressBar,
 )
 from PyQt5.QtCore import Qt, QTimer, pyqtSlot
 from PyQt5.QtGui import QPixmap, QImage
@@ -40,6 +41,11 @@ class DashboardScreen(QWidget):
         # Initialize screen capture thread
         self.screen_capture_thread = None
         QTimer.singleShot(200, self.setup_screen_capture)
+        # Subscribe to voice events for visual feedback
+        from ai_desktop_assistant.core.events import EventType
+        self.event_bus.subscribe(EventType.VOICE_INPUT_START, self.on_voice_input_start)
+        self.event_bus.subscribe(EventType.VOICE_INPUT_STOP, self.on_voice_input_stop)
+        self.event_bus.subscribe(EventType.VOICE_DATA, self.on_voice_data)
 
     def setup_ui(self):
         """Set up the dashboard UI components."""
@@ -137,9 +143,19 @@ class DashboardScreen(QWidget):
         status_label = QLabel("Status:")
         self.status_text = QLabel("Ready")
         self.status_text.setStyleSheet("font-weight: bold;")
+        # Microphone level indicator
+        mic_label = QLabel("Mic:")
+        self.volume_bar = QProgressBar()
+        self.volume_bar.setRange(0, 2000)
+        self.volume_bar.setValue(0)
+        self.volume_bar.setTextVisible(False)
+        self.volume_bar.setFixedWidth(100)
+        self.volume_bar.hide()
 
         status_layout.addWidget(status_label)
-        status_layout.addWidget(self.status_text, 1)  # Stretch
+        status_layout.addWidget(self.status_text, 1)  # Stretch status text
+        status_layout.addWidget(mic_label)
+        status_layout.addWidget(self.volume_bar)
         status_layout.addStretch()
 
         main_layout.addLayout(status_layout)
@@ -348,3 +364,29 @@ class DashboardScreen(QWidget):
         # Auto-scroll to bottom
         scrollbar = self.log_text.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
+        
+    # Voice input handlers for UI feedback
+    def on_voice_input_start(self):
+        """Handle start of voice input: show volume indicator and update status."""
+        # Reset and show the volume bar
+        if hasattr(self, 'volume_bar'):
+            self.volume_bar.setValue(0)
+            self.volume_bar.show()
+        # Update status text
+        self.update_status("Listening...")
+
+    def on_voice_input_stop(self):
+        """Handle stop of voice input: hide volume indicator and update status."""
+        if hasattr(self, 'volume_bar'):
+            self.volume_bar.hide()
+        self.update_status("Processing...")
+
+    def on_voice_data(self, volume):
+        """Update volume indicator based on incoming audio volume data."""
+        if hasattr(self, 'volume_bar') and self.volume_bar.isVisible():
+            # Clamp volume to bar range
+            try:
+                level = min(int(volume), self.volume_bar.maximum())
+                self.volume_bar.setValue(level)
+            except Exception:
+                pass

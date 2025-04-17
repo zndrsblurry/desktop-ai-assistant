@@ -137,31 +137,38 @@ class ApplicationController(QObject):
 
     def start_assistant(self):
         """Start the assistant."""
+        # Ensure initialization
         if not self._is_initialized:
             self.logger.error("Cannot start assistant: Not initialized")
-            self._event_bus.publish(
-                EventType.ERROR, "init", "Assistant not initialized"
-            )
+            self._event_bus.publish(EventType.ERROR, "init", "Assistant not initialized")
             return
 
+        # Transition to starting state
         self._state.assistant_state = "starting"
         self._event_bus.publish(EventType.STATE_CHANGED, "assistant_state", "starting")
         self.logger.info("Starting assistant")
 
-        # Here you would start your assistant logic
-        # This might involve activating voice recognition, etc.
-        # For now, we'll just update the state
+        # Activate voice recognition
+        import asyncio
+        # Begin listening for voice input
+        asyncio.create_task(self._mic_input.start_listening())
+
+        # Transition to listening state
         self._state.assistant_state = "listening"
         self._event_bus.publish(EventType.STATE_CHANGED, "assistant_state", "listening")
 
     def stop_assistant(self):
         """Stop the assistant."""
+        # Transition to stopping state
         self._state.assistant_state = "stopping"
         self._event_bus.publish(EventType.STATE_CHANGED, "assistant_state", "stopping")
         self.logger.info("Stopping assistant")
 
-        # Here you would stop your assistant logic
-        # For now, we'll just update the state
+        # Stop voice recognition
+        import asyncio
+        asyncio.create_task(self._mic_input.stop_listening())
+
+        # Transition to idle state
         self._state.assistant_state = "idle"
         self._event_bus.publish(EventType.STATE_CHANGED, "assistant_state", "idle")
 
